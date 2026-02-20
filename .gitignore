@@ -1,0 +1,50 @@
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.egg
+*.log
+
+# === Virtual Environment ===
+.venv/
+venv/
+env/
+ENV/
+*.env
+
+# === Secrets ===
+.env
+*.key
+*.pem
+*.crt
+*.db
+secrets.json
+
+# === IDEs & Editors ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === OS files ===
+.DS_Store
+Thumbs.db
+
+# === Flask/Build ===
+instance/
+*.sqlite3
+*.db-journal
+chat.db
+debug.log
+dist/
+build/
+flask_session/
+uploads/
+*.zip
+*.exe
+exe
+zip
+

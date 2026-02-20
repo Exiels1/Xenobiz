@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>XenoBiz - Auth</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .auth-wrap { max-width: 540px; margin: 48px auto; padding: 20px; }
+    .auth-card { background: rgba(8, 12, 20, 0.9); border: 1px solid #2a3e5f; border-radius: 14px; padding: 20px; }
+    .auth-grid { display: grid; gap: 10px; margin-top: 12px; }
+    .auth-grid input { padding: 11px 12px; border-radius: 8px; border: 1px solid #324a70; background: #0f1b2d; color: #d9eaff; }
+    .auth-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .auth-row button { padding: 10px 12px; border-radius: 8px; border: 1px solid #416699; background: #10233f; color: #d9eaff; cursor: pointer; }
+    .auth-row button.primary { background: #1b3f77; border-color: #5184cc; }
+    .auth-help { margin-top: 8px; color: #9bb5d8; font-size: 13px; }
+    .auth-msg { margin-top: 12px; font-size: 14px; }
+    .auth-msg.error { color: #ff7f7f; }
+    .auth-msg.ok { color: #9af3bb; }
+    .codes-box { margin-top: 14px; padding: 12px; border-radius: 8px; border: 1px dashed #5a78a8; background: #0c1828; display: none; }
+    .codes-box pre { margin: 0; color: #d9eaff; white-space: pre-wrap; }
+    .codes-row { margin-top: 10px; }
+  </style>
+</head>
+<body class="quantum">
+  <main class="auth-wrap">
+    <section class="auth-card">
+      <h1>XenoBiz Auth</h1>
+      <p class="auth-help">Sign up or log in with email and password. Recovery codes are one-time use for password reset.</p>
+
+      <div class="auth-grid">
+        <input id="email" type="email" placeholder="Email" autocomplete="email" />
+        <input id="password" type="password" placeholder="Password (8+ chars)" autocomplete="current-password" />
+        <input id="recoveryCode" type="text" placeholder="Recovery code (for reset)" autocomplete="off" />
+        <input id="newPassword" type="password" placeholder="New password (for reset)" autocomplete="new-password" />
+      </div>
+
+      <div class="auth-row">
+        <button id="btnSignup" class="primary" type="button">Sign Up</button>
+        <button id="btnLogin" type="button">Log In</button>
+        <button id="btnReset" type="button">Reset Password</button>
+      </div>
+
+      <div id="msg" class="auth-msg"></div>
+
+      <div id="codesBox" class="codes-box">
+        <div>Save these recovery codes now. Each code can be used once.</div>
+        <pre id="codesText"></pre>
+        <div class="codes-row">
+          <button id="btnDownloadCodes" type="button">Download .txt</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const emailEl = document.getElementById("email");
+    const passwordEl = document.getElementById("password");
+    const recoveryCodeEl = document.getElementById("recoveryCode");
+    const newPasswordEl = document.getElementById("newPassword");
+    const msgEl = document.getElementById("msg");
+    const codesBoxEl = document.getElementById("codesBox");
+    const codesTextEl = document.getElementById("codesText");
+    const btnDownloadCodes = document.getElementById("btnDownloadCodes");
+    let latestCodes = [];
+
+    function showMsg(text, ok) {
+      msgEl.textContent = text;
+      msgEl.className = ok ? "auth-msg ok" : "auth-msg error";
+    }
+
+    function getFormValues() {
+      return {
+        email: emailEl.value.trim(),
+        password: passwordEl.value,
+        recovery_code: recoveryCodeEl.value.trim().toUpperCase(),
+        new_password: newPasswordEl.value
+      };
+    }
+
+    function renderCodes(codes) {
+      latestCodes = Array.isArray(codes) ? codes : [];
+      if (!latestCodes.length) {
+        codesBoxEl.style.display = "none";
+        codesTextEl.textContent = "";
+        return;
+      }
+      codesTextEl.textContent = latestCodes.join("\n");
+      codesBoxEl.style.display = "block";
+    }
+
+    function downloadCodesTxt() {
+      if (!latestCodes.length) return;
+      const content = "XenoBiz Recovery Codes\n\n" + latestCodes.join("\n") + "\n";
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "xenobiz-recovery-codes.txt";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function postJson(url, payload) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json.error || "Request failed");
+      }
+      return json;
+    }
+
+    document.getElementById("btnSignup").addEventListener("click", async () => {
+      try {
+        const { email, password } = getFormValues();
+        const out = await postJson("/auth/signup", { email, password });
+        renderCodes(out.recovery_codes || []);
+        showMsg("Account created. Recovery codes generated. Redirecting...", true);
+        setTimeout(() => { window.location.href = "/"; }, 700);
+      } catch (err) {
+        renderCodes([]);
+        showMsg(err.message, false);
+      }
+    });
+
+    document.getElementById("btnLogin").addEventListener("click", async () => {
+      try {
+        const { email, password } = getFormValues();
+        const out = await postJson("/auth/login", { email, password });
+        renderCodes([]);
+        showMsg("Logged in. Remaining recovery codes: " + (out.remaining_recovery_codes ?? 0), true);
+        setTimeout(() => { window.location.href = "/"; }, 500);
+      } catch (err) {
+        renderCodes([]);
+        showMsg(err.message, false);
+      }
+    });
+
+    document.getElementById("btnReset").addEventListener("click", async () => {
+      try {
+        const { email, recovery_code, new_password } = getFormValues();
+        const out = await postJson("/auth/reset-password", {
+          email,
+          recovery_code,
+          new_password
+        });
+        renderCodes([]);
+        showMsg(out.message || "Password reset successful.", true);
+      } catch (err) {
+        renderCodes([]);
+        showMsg(err.message, false);
+      }
+    });
+
+    btnDownloadCodes.addEventListener("click", downloadCodesTxt);
+  </script>
+</body>
+</html>

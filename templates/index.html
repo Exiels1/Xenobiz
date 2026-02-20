@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>XenoBiz Operations Console</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+</head>
+<body class="quantum" data-theme="quantum">
+  <div id="startupOverlay" class="startup-overlay">
+    <div class="startup-card">
+      <div class="startup-title">XenoBiz</div>
+      <div class="startup-sub">Initializing console...</div>
+      <div class="startup-bar"><span></span></div>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="left">
+      <div class="title">XenoBiz Operations Console</div>
+      <div id="modeBadge" class="badge">Standard</div>
+    </div>
+    <div class="right">
+      <label class="switch">
+        <input type="checkbox" id="toggleCreative">
+        <span class="slider"></span>
+      </label>
+      <span class="switch-label">Exploration Mode</span>
+      <button id="btnProfile" class="ghost">Preferences</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside id="graphPanel" class="panel">
+      <div class="panel-header">
+        <div>Signals</div>
+      </div>
+      <div class="signals-list" id="signalsList">
+        <div class="signal-item">
+          <div class="signal-label">System</div>
+          <div class="signal-value ok">Ready</div>
+        </div>
+        <div class="signal-item">
+          <div class="signal-label">Memory</div>
+          <div class="signal-value">Active</div>
+        </div>
+        <div class="signal-item">
+          <div class="signal-label">Enforcement</div>
+          <div class="signal-value">Active</div>
+        </div>
+        <div class="signal-item">
+          <div class="signal-label">Mode</div>
+          <div class="signal-value" id="signalMode">Standard</div>
+        </div>
+      </div>
+      <div id="graph" class="graph"></div>
+      <div class="panel-footer">
+        <button id="btnRefreshGraph" class="outline">Refresh</button>
+      </div>
+    </aside>
+
+    <section class="app">
+      <div class="support-header">
+        <div class="support-head-row">
+          <div>
+            <div class="support-title">XenoBiz Support Console</div>
+            <div class="support-sub">Describe one issue at a time. Include one specific detail.</div>
+          </div>
+          <button id="btnToggleHistory" class="ghost" type="button" aria-pressed="false">Hide Chats</button>
+        </div>
+      </div>
+
+      <div class="app-main">
+        <aside class="history-sidebar">
+          <div class="history-sidebar-header">
+            <div>Your Chats</div>
+            <div class="history-actions">
+              <button id="btnNewChat" class="ghost" type="button">+ New Chat</button>
+              <button id="btnReloadHistory" class="ghost" type="button">Refresh</button>
+            </div>
+          </div>
+          <div id="historyList" class="history-list"></div>
+        </aside>
+
+        <div class="chat-main">
+          <div class="chat-area" id="chatArea"></div>
+
+          <form class="chat-form" id="chatForm" autocomplete="off">
+            <input type="text" id="messageInput" placeholder="Example: My battery drains from 100% to 40% in 1 hour." autocomplete="off" />
+            <input type="file" id="fileInput" hidden multiple>
+            <button type="button" id="btnUpload" class="icon-btn ghost" title="Upload file/image" aria-label="Upload file/image">⤴</button>
+            <button type="button" id="btnMic" class="icon-btn mic-btn" title="Voice input" aria-label="Voice input">◉</button>
+            <button type="submit" class="icon-btn send-btn" title="Send message" aria-label="Send message">➤</button>
+          </form>
+          <div id="attachmentTray" class="attachment-tray"></div>
+          <div class="input-note">Voice input may be inaccurate. Review before submitting.</div>
+          <div class="quick-prompts">
+            <button type="button" class="prompt-chip" data-template="I'm having an issue with battery drain.">Battery issue</button>
+            <button type="button" class="prompt-chip" data-template="I'm having a system crash when I open Task View.">System crash</button>
+            <button type="button" class="prompt-chip" data-template="I'm having a network problem. Connections drop unexpectedly.">Network problem</button>
+            <button type="button" class="prompt-chip" data-template="Software is not responding and freezes the screen.">Software not responding</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="profileDrawer" class="drawer">
+    <div class="drawer-content">
+      <div class="drawer-header">
+        <h3>Profile and Preferences</h3>
+        <button id="btnCloseProfile" class="ghost">X</button>
+      </div>
+
+      <div class="drawer-body">
+        <label class="field">
+          <span>Preferred Name</span>
+          <input id="prefName" type="text" placeholder="e.g., Exiels1" />
+        </label>
+
+        <label class="field">
+          <span>Tone / Style</span>
+          <select id="prefStyle">
+            <option value="concise">Concise (default)</option>
+            <option value="formal">Formal</option>
+            <option value="friendly">Friendly</option>
+            <option value="technical">Technical</option>
+            <option value="creative">Creative</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Theme</span>
+          <select id="prefTheme">
+            <option value="quantum">Quantum (cyan/pink)</option>
+            <option value="plasma">Plasma (violet/blue)</option>
+            <option value="crimson">Crimson (red/black)</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="drawer-footer">
+        <button id="btnSavePrefs">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: xenobiz
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    autoDeploy: true
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: XENOBIZ_DEBUG
+        value: "0"
