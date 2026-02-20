@@ -7,6 +7,8 @@ services:
     startCommand: gunicorn app:app
     autoDeploy: true
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
       - key: GROQ_API_KEY
         sync: false
       - key: SECRET_KEY
