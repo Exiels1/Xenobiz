@@ -1681,10 +1681,3 @@ if __name__ == "__main__":
     if DEBUG:
         webbrowser.open(f"http://127.0.0.1:{port}")
     app.run(host="0.0.0.0", port=port, debug=DEBUG)
-
-
-        response = client.chat.completions.create(...)
-        return response
-    except Exception as e:
-        print(f"Error occurred: {e}")  # Log the actual error
-        raise  # Re-raise the exception to avoid hiding the actual error
