@@ -1,6 +1,8 @@
     try:
-        response = client.chat.completions.create(...)
-        return response
+        completion = client.chat.completions.create(...)
+    except APIConnectionError as e:
+        print(f"APIConnectionError: {e}")
+        raise e
     except Exception as e:
-        print(f"Error occurred: {e}")  # Log the actual error
-        raise  # Re-raise the exception to avoid hiding the actual error
+        print(f"An error occurred: {e}")
+        raise e
