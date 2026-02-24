@@ -284,7 +284,8 @@ def create_user(email, password):
         return None, "Password must be at least 8 characters."
 
     password_hash = generate_password_hash(password)
-try:
+
+    try:
         with get_db_connection() as conn:
             cur = conn.execute(
                 "INSERT INTO users (email, password_hash) VALUES (?, ?)",
@@ -293,6 +294,7 @@ try:
             user_id = cur.lastrowid
     except sqlite3.IntegrityError:
         return None, "Email already registered."
+
     return user_id, None
 
 def generate_and_store_recovery_codes(user_id, count=8):
