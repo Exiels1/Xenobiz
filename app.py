@@ -54,11 +54,10 @@ DB_FILE = "chat.db"
 UPLOAD_DIR = resource_path("uploads")
 MODEL = "llama-3.1-8b-instant"
 ENABLE_HANDOFF = True
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 if not GROQ_API_KEY:
     print("CRITICAL ERROR: GROQ_API_KEY not set in environment.")
     sys.exit(1)
-client = Groq(api_key=GROQ_API_KEY)
+client = Groq(api_key="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")
 DEBUG = os.environ.get("XENOBIZ_DEBUG", "0") == "1"
 ALLOWED_UPLOAD_EXTENSIONS = {
     ".txt", ".md", ".csv", ".json", ".log", ".xml",
