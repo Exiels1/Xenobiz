@@ -45,7 +45,7 @@ Session(app)
 
 DB_FILE = "chat.db"
 UPLOAD_DIR = resource_path("uploads")
-MODEL = "llama-3.1-8b-instant"
+MODEL = "llama-3.3-70b-versatile"
 ENABLE_HANDOFF = True
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 if not GROQ_API_KEY:
@@ -1064,6 +1064,49 @@ def get_conversation_history(limit=10, user_id=None, conversation_id=None):
         ).fetchall()
     return [{"role": r["role"], "content": r["content"]} for r in reversed(rows)]
 
+def build_smart_context(user_id, conversation_id, limit=6):
+    with get_db_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT role, content
+            FROM conversations
+            WHERE user_id = ? AND conversation_id = ?
+            ORDER BY id ASC
+            """,
+            (user_id, conversation_id),
+        ).fetchall()
+
+    history = [{"role": r["role"], "content": r["content"]} for r in rows]
+    if len(history) <= limit:
+        return history
+
+    older_messages = history[:-limit]
+    recent_messages = history[-limit:]
+    transcript = "\n".join(
+        f"{message['role'].title()}: {message['content']}" for message in older_messages
+    )
+
+    try:
+        completion = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            temperature=0,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Summarize this conversation history in 3 sentences max, focusing on the core issue and what was attempted.",
+                },
+                {"role": "user", "content": transcript},
+            ],
+        )
+        summary = (completion.choices[0].message.content or "").strip()
+    except Exception:
+        summary = ""
+
+    if not summary:
+        return recent_messages
+
+    return [{"role": "system", "content": summary}] + recent_messages
+
 def sanitize_reply(text):
     """Remove labeled sections and markdown so replies stay plain."""
     if not text:
@@ -1675,7 +1718,7 @@ You speak as a responsible business operator, not a chatbot.
     messages = [{"role": "system", "content": system_instruction}]
     
     # Add historical context from DB
-    messages.extend(get_conversation_history(limit=10, user_id=user_id, conversation_id=conversation_id))
+    messages.extend(build_smart_context(user_id, conversation_id, limit=6))
     
     # Ensure current message is present
     if not messages or messages[-1]["content"] != final_user_message:
