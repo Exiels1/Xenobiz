@@ -1,7 +1,7 @@
 import os
 import sys
 import sqlite3
-import joblib
+import json
 import webbrowser
 import re
 import secrets
@@ -42,13 +42,6 @@ app.secret_key = os.environ.get("SECRET_KEY", "quantumshade_secret")
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB per request
 Session(app)
-
-# Load sentiment model - Systemic dependency
-try:
-    sentiment_model = joblib.load(resource_path("model/sentiment_model.pkl"))
-except Exception as e:
-    print(f"CRITICAL ERROR: Could not load sentiment model: {e}")
-    sys.exit(1)
 
 DB_FILE = "chat.db"
 UPLOAD_DIR = resource_path("uploads")
@@ -730,17 +723,74 @@ def build_url_context(url_inputs):
     return "\n\n".join(blocks)
 
 # === SYSTEM LOGIC ===
-def analyze_sentiment(text):
-    prediction = sentiment_model.predict([text])[0]
-    probabilities = sentiment_model.predict_proba([text])[0]
-    confidence = round(probabilities.max() * 100, 2)
-    
-    emotion_map = {
-        "positive": "Happy 😊",
-        "neutral": "Calm 😐",
-        "negative": "Frustrated 😠"
+def analyze_input(text):
+    default_analysis = {
+        "sentiment": "neutral",
+        "emotion": "Calm 😐",
+        "confidence": 0,
+        "issue_tag": "general:other",
+        "is_complaint": False,
     }
-    return prediction, emotion_map.get(prediction, "Unknown"), confidence
+    allowed_sentiments = {"positive", "negative", "neutral"}
+    allowed_emotions = {"Happy 😊", "Frustrated 😠", "Calm 😐"}
+    allowed_issue_tags = set(ISSUE_TAGS.keys()) | {"general:other"}
+
+    try:
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            temperature=0,
+            response_format={"type": "json_object"},
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Analyze the user's message and return only a JSON object with these fields: "
+                        "sentiment, emotion, confidence, issue_tag, is_complaint. "
+                        "Use sentiment values positive, negative, or neutral. "
+                        "Use emotion values Happy 😊, Frustrated 😠, or Calm 😐. "
+                        f"Use issue_tag from this list: {', '.join(sorted(allowed_issue_tags))}. "
+                        "Set confidence to a number from 0 to 100. "
+                        "Set is_complaint to true or false. "
+                        "Do not include markdown or any extra text."
+                    ),
+                },
+                {"role": "user", "content": text},
+            ],
+        )
+        content = completion.choices[0].message.content or "{}"
+        analysis = json.loads(content)
+    except Exception:
+        return default_analysis.copy()
+
+    sentiment = analysis.get("sentiment", default_analysis["sentiment"])
+    emotion = analysis.get("emotion", default_analysis["emotion"])
+    issue_tag = analysis.get("issue_tag", default_analysis["issue_tag"])
+    raw_is_complaint = analysis.get("is_complaint", default_analysis["is_complaint"])
+
+    try:
+        confidence = float(analysis.get("confidence", default_analysis["confidence"]))
+    except (TypeError, ValueError):
+        confidence = default_analysis["confidence"]
+
+    if isinstance(raw_is_complaint, str):
+        is_complaint_flag = raw_is_complaint.strip().lower() == "true"
+    else:
+        is_complaint_flag = bool(raw_is_complaint)
+
+    if sentiment not in allowed_sentiments:
+        sentiment = default_analysis["sentiment"]
+    if emotion not in allowed_emotions:
+        emotion = default_analysis["emotion"]
+    if issue_tag not in allowed_issue_tags:
+        issue_tag = default_analysis["issue_tag"]
+
+    return {
+        "sentiment": sentiment,
+        "emotion": emotion,
+        "confidence": max(0, min(100, round(confidence, 2))),
+        "issue_tag": issue_tag,
+        "is_complaint": is_complaint_flag,
+    }
 
 def resolve_business_role(sentiment, confidence):
     if sentiment == "negative" and confidence > 60:
@@ -793,14 +843,6 @@ ISSUE_TAGS = {
     "design:ui": ["design", "layout", "look", "theme", "color", "font"],
     "cost:pricing": ["price", "pricing", "cost", "expensive", "cheap", "subscription"],
 }
-
-def detect_issue_tag(text):
-    text_l = text.lower()
-    for tag, keywords in ISSUE_TAGS.items():
-        for kw in keywords:
-            if kw in text_l:
-                return tag
-    return "general:other"
 
 def is_complaint(text):
     text_l = text.lower()
@@ -1116,7 +1158,7 @@ def log_runtime_event(issue_tag, issue_state, convo_state, directive, handoff_tr
 
 def get_previous_issue_tag():
     prev = get_last_user_message()
-    return detect_issue_tag(prev) if prev else None
+    return analyze_input(prev)["issue_tag"] if prev else None
 
 def get_recent_user_messages(limit=3):
     user_id = get_current_user_id()
@@ -1524,7 +1566,10 @@ def chat():
         )
 
     # 1. Sentiment & Decision Analysis
-    sentiment, emotion, confidence = analyze_sentiment(user_message)
+    input_analysis = analyze_input(user_message)
+    sentiment = input_analysis["sentiment"]
+    emotion = input_analysis["emotion"]
+    confidence = input_analysis["confidence"]
     business_role = resolve_business_role(sentiment, confidence)
     decision = decision_directive(sentiment, confidence)
 
@@ -1537,8 +1582,8 @@ def chat():
     convo_state = None
     convo_directive = None
     handoff_state = None
-    if (sentiment == "negative" and confidence >= 50) or is_complaint(user_message):
-        issue_tag = detect_issue_tag(user_message)
+    if (sentiment == "negative" and confidence >= 50) or input_analysis["is_complaint"]:
+        issue_tag = input_analysis["issue_tag"]
         issue_count = upsert_issue(issue_tag)
         issue_level = escalation_level(issue_count)
 
