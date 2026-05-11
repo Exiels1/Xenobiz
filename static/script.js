@@ -75,49 +75,6 @@ if (prefTheme) prefTheme.value = prefs.theme || "quantum";
 applyHistoryCollapsedState(localStorage.getItem(HISTORY_COLLAPSED_KEY) === "1");
 renderAttachmentTray();
 
-// Enforce icon-only composer actions, even if an older cached template is rendered.
-function normalizeComposerButtons() {
-  const form = document.getElementById("chatForm");
-  if (!form) return;
-
-  const uploadButton = document.getElementById("btnUpload")
-    || Array.from(form.querySelectorAll("button")).find((b) => /file/i.test((b.textContent || "").trim()));
-  if (uploadButton) {
-    uploadButton.classList.add("icon-btn");
-    uploadButton.innerHTML = "&#x2B06;";
-    uploadButton.setAttribute("title", "Upload file/image");
-    uploadButton.setAttribute("aria-label", "Upload file/image");
-  }
-
-  const micButton = document.getElementById("btnMic")
-    || Array.from(form.querySelectorAll("button")).find((b) => /mic/i.test((b.textContent || "").trim()));
-  if (micButton) {
-    micButton.classList.add("icon-btn");
-    micButton.innerHTML = "&#x25C9;";
-    micButton.setAttribute("title", "Voice input");
-    micButton.setAttribute("aria-label", "Voice input");
-  }
-
-  const sendButton = form.querySelector(".send-btn")
-    || Array.from(form.querySelectorAll("button[type='submit'], button")).find((b) => /send/i.test((b.textContent || "").trim()));
-  if (sendButton) {
-    sendButton.classList.add("icon-btn", "send-btn");
-    sendButton.innerHTML = "&#x27A4;";
-    sendButton.setAttribute("title", "Send message");
-    sendButton.setAttribute("aria-label", "Send message");
-  }
-
-  Array.from(form.querySelectorAll("button")).forEach((button) => {
-    const id = (button.id || "").toLowerCase();
-    const text = (button.textContent || "").trim().toLowerCase();
-    if (id.includes("url") || text === "url") {
-      button.remove();
-    }
-  });
-}
-
-normalizeComposerButtons();
-
 function inferSentiment(text) {
   const t = (text || "").toLowerCase();
   const pos = ["great", "awesome", "nice", "love", "cool", "thanks", "perfect", "good", "yes"];
@@ -432,10 +389,7 @@ async function loadHistory() {
 }
 
 function buildContextPrefix() {
-  const name = prefs.name ? `User name: ${prefs.name}. ` : "";
-  const style = `Style: ${prefs.style}. `;
-  const mode = prefs.creative ? "Mode: creative. " : "Mode: normal. ";
-  return `[PREFERENCES] ${name}${style}${mode}`;
+  return "";
 }
 
 if (chatForm) {

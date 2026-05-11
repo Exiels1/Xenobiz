@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>XenoBiz Operations Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
 </head>
@@ -18,15 +21,12 @@
 
   <header class="topbar">
     <div class="left">
-      <div class="title">XenoBiz Operations Console</div>
+      <div class="title">XenoBiz</div>
       <div id="modeBadge" class="badge">Standard</div>
     </div>
     <div class="right">
-      <label class="switch">
-        <input type="checkbox" id="toggleCreative">
-        <span class="slider"></span>
-      </label>
-      <span class="switch-label">Exploration Mode</span>
+      <button id="btnToggleHistory" class="ghost" type="button" aria-pressed="false">Chats</button>
+      <button id="btnRefreshGraphTop" class="ghost" type="button" onclick="document.getElementById('btnRefreshGraph')?.click()">Signals</button>
       <button id="btnProfile" class="ghost">Preferences</button>
     </div>
   </header>
@@ -38,18 +38,22 @@
       </div>
       <div class="signals-list" id="signalsList">
         <div class="signal-item">
+          <div class="signal-icon signal-icon-system" aria-hidden="true"></div>
           <div class="signal-label">System</div>
           <div class="signal-value ok">Ready</div>
         </div>
         <div class="signal-item">
+          <div class="signal-icon signal-icon-memory" aria-hidden="true"></div>
           <div class="signal-label">Memory</div>
           <div class="signal-value">Active</div>
         </div>
         <div class="signal-item">
+          <div class="signal-icon signal-icon-enforcement" aria-hidden="true"></div>
           <div class="signal-label">Enforcement</div>
           <div class="signal-value">Active</div>
         </div>
         <div class="signal-item">
+          <div class="signal-icon signal-icon-mode" aria-hidden="true"></div>
           <div class="signal-label">Mode</div>
           <div class="signal-value" id="signalMode">Standard</div>
         </div>
@@ -67,7 +71,6 @@
             <div class="support-title">XenoBiz Support Console</div>
             <div class="support-sub">Describe one issue at a time. Include one specific detail.</div>
           </div>
-          <button id="btnToggleHistory" class="ghost" type="button" aria-pressed="false">Hide Chats</button>
         </div>
       </div>
 
@@ -87,20 +90,34 @@
           <div class="chat-area" id="chatArea"></div>
 
           <form class="chat-form" id="chatForm" autocomplete="off">
-            <input type="text" id="messageInput" placeholder="Example: My battery drains from 100% to 40% in 1 hour." autocomplete="off" />
+            <input type="text" id="messageInput" placeholder="Describe your issue in detail..." autocomplete="off" />
             <input type="file" id="fileInput" hidden multiple>
-            <button type="button" id="btnUpload" class="icon-btn ghost" title="Upload file/image" aria-label="Upload file/image">⤴</button>
-            <button type="button" id="btnMic" class="icon-btn mic-btn" title="Voice input" aria-label="Voice input">◉</button>
-            <button type="submit" class="icon-btn send-btn" title="Send message" aria-label="Send message">➤</button>
+            <button type="button" id="btnUpload" class="icon-btn ghost" title="Upload file/image" aria-label="Upload file/image">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </button>
+            <button type="button" id="btnMic" class="icon-btn mic-btn" title="Voice input" aria-label="Voice input">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+                <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+            <button type="submit" class="icon-btn send-btn" title="Send message" aria-label="Send message">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
           </form>
           <div id="attachmentTray" class="attachment-tray"></div>
           <div class="input-note">Voice input may be inaccurate. Review before submitting.</div>
-          <div class="quick-prompts">
-            <button type="button" class="prompt-chip" data-template="I'm having an issue with battery drain.">Battery issue</button>
-            <button type="button" class="prompt-chip" data-template="I'm having a system crash when I open Task View.">System crash</button>
-            <button type="button" class="prompt-chip" data-template="I'm having a network problem. Connections drop unexpectedly.">Network problem</button>
-            <button type="button" class="prompt-chip" data-template="Software is not responding and freezes the screen.">Software not responding</button>
-          </div>
         </div>
       </div>
     </section>
@@ -137,6 +154,17 @@
             <option value="plasma">Plasma (violet/blue)</option>
             <option value="crimson">Crimson (red/black)</option>
           </select>
+        </label>
+
+        <label class="field field-row">
+          <span>Exploration Mode</span>
+          <span class="switch-wrap">
+            <label class="switch">
+              <input type="checkbox" id="toggleCreative">
+              <span class="slider"></span>
+            </label>
+            <span class="switch-label">Creative responses</span>
+          </span>
         </label>
       </div>
 
