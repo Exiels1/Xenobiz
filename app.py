@@ -1576,9 +1576,10 @@ def attachment_download(attachment_id):
     return send_file(path, mimetype=attachment.get("mime_type") or "application/octet-stream")
 
 @app.route("/")
-@login_required
 def index():
-    return render_template("index.html")
+    if get_current_user_id():
+        return redirect(url_for("dashboard"))
+    return render_template("landing.html")
 
 @app.route("/dashboard")
 @login_required
