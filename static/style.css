@@ -1050,3 +1050,63 @@ body.history-collapsed .app-main {
 body.history-collapsed .history-sidebar {
   display: none;
 }
+
+/* Profile banner */
+.profile-banner {
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin: 0 20px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.profile-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.profile-banner-content span {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.profile-banner-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.profile-banner-link:hover {
+  text-decoration: underline;
+}
+
+.profile-banner-dismiss {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.profile-banner-dismiss:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}

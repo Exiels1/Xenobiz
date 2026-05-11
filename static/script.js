@@ -392,6 +392,38 @@ function buildContextPrefix() {
   return "";
 }
 
+async function checkProfileBanner() {
+  const banner = document.getElementById('profileBanner');
+  const dismissBtn = document.getElementById('dismissBanner');
+  
+  if (!banner) return;
+  
+  // Check if banner was previously dismissed
+  if (localStorage.getItem('profileBannerDismissed') === 'true') {
+    return;
+  }
+  
+  try {
+    const response = await fetch('/profile/business');
+    if (response.ok) {
+      const profile = await response.json();
+      if (Object.keys(profile).length === 0) {
+        banner.style.display = 'flex';
+      }
+    }
+  } catch (error) {
+    console.error('Failed to check profile:', error);
+  }
+  
+  // Handle dismiss button
+  if (dismissBtn) {
+    dismissBtn.addEventListener('click', () => {
+      banner.style.display = 'none';
+      localStorage.setItem('profileBannerDismissed', 'true');
+    });
+  }
+}
+
 if (chatForm) {
   chatForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -610,6 +642,7 @@ async function boot() {
   await loadConversations();
   await loadHistory();
   await rebuildGraphFromHistory();
+  await checkProfileBanner();
 }
 boot();
 

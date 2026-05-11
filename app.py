@@ -186,6 +186,26 @@ def init_db():
         if "subscription_status" not in user_columns:
             conn.execute("ALTER TABLE users ADD COLUMN subscription_status TEXT DEFAULT 'free'")
 
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS business_profiles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL UNIQUE,
+                business_name TEXT,
+                business_type TEXT,
+                industry TEXT,
+                team_size TEXT,
+                monthly_revenue TEXT,
+                main_product TEXT,
+                target_market TEXT,
+                biggest_challenge TEXT,
+                business_goals TEXT,
+                location TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        """)
+
 init_db()
 
 # === AUTH LOGIC ===
@@ -1468,6 +1488,61 @@ def auth_me():
         }
     )
 
+@app.route("/profile/business", methods=["GET"])
+@login_required
+def get_business_profile():
+    user_id = get_current_user_id()
+    with get_db_connection() as conn:
+        profile = conn.execute(
+            "SELECT business_name, business_type, industry, team_size, monthly_revenue, main_product, target_market, biggest_challenge, business_goals, location FROM business_profiles WHERE user_id = ?",
+            (user_id,)
+        ).fetchone()
+    
+    if profile:
+        return jsonify(dict(profile))
+    return jsonify({})
+
+@app.route("/profile/business", methods=["POST"])
+@login_required
+def save_business_profile():
+    user_id = get_current_user_id()
+    data = request.get_json() or {}
+    
+    with get_db_connection() as conn:
+        conn.execute("""
+            INSERT INTO business_profiles (
+                user_id, business_name, business_type, industry, team_size, 
+                monthly_revenue, main_product, target_market, biggest_challenge, 
+                business_goals, location, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                business_name = excluded.business_name,
+                business_type = excluded.business_type,
+                industry = excluded.industry,
+                team_size = excluded.team_size,
+                monthly_revenue = excluded.monthly_revenue,
+                main_product = excluded.main_product,
+                target_market = excluded.target_market,
+                biggest_challenge = excluded.biggest_challenge,
+                business_goals = excluded.business_goals,
+                location = excluded.location,
+                updated_at = CURRENT_TIMESTAMP
+        """, (
+            user_id,
+            data.get("business_name"),
+            data.get("business_type"),
+            data.get("industry"),
+            data.get("team_size"),
+            data.get("monthly_revenue"),
+            data.get("main_product"),
+            data.get("target_market"),
+            data.get("biggest_challenge"),
+            data.get("business_goals"),
+            data.get("location")
+        ))
+    
+    return jsonify({"ok": True, "message": "Profile saved. Your AI manager is now personalized."})
+
 @app.route("/conversations", methods=["GET"])
 @login_required
 def conversations_list():
@@ -1578,13 +1653,23 @@ def attachment_download(attachment_id):
 @app.route("/")
 def index():
     if get_current_user_id():
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("chat_console"))
     return render_template("landing.html")
+
+@app.route("/index")
+@login_required
+def chat_console():
+    return render_template("index.html")
 
 @app.route("/dashboard")
 @login_required
 def dashboard():
     return render_template("dashboard.html")
+
+@app.route("/profile")
+@login_required
+def business_profile():
+    return render_template("profile.html")
 
 def classify_pulse_sentiment(text):
     text_l = (text or "").lower()
@@ -1780,8 +1865,33 @@ def chat():
     # 2. Persist User Message
     save_message("user", final_user_message, user_id=user_id, conversation_id=conversation_id)
 
+    # 3. Fetch Business Profile Context
+    business_context = ""
+    with get_db_connection() as conn:
+        profile = conn.execute(
+            "SELECT business_name, business_type, industry, team_size, monthly_revenue, main_product, target_market, biggest_challenge, business_goals, location FROM business_profiles WHERE user_id = ?",
+            (user_id,)
+        ).fetchone()
+    
+    if profile:
+        business_context = f"""
+BUSINESS CONTEXT (treat this as your employer's business - you are their hired AI manager):
+Business: {profile['business_name'] or 'Not specified'}
+Type: {profile['business_type'] or 'Not specified'}
+Industry: {profile['industry'] or 'Not specified'}
+Team Size: {profile['team_size'] or 'Not specified'}
+Monthly Revenue: {profile['monthly_revenue'] or 'Not specified'}
+Main Product/Service: {profile['main_product'] or 'Not specified'}
+Target Market: {profile['target_market'] or 'Not specified'}
+Biggest Challenge: {profile['biggest_challenge'] or 'Not specified'}
+Goals: {profile['business_goals'] or 'Not specified'}
+Location: {profile['location'] or 'Not specified'}
+
+Use this context to give personalized, specific advice. Reference their actual business details in responses. Speak as if you work for them.
+"""
+
     # 3. Construct Authoritative System Instruction
-    system_instruction = f"""
+    system_instruction = f"""{business_context}
 You are XenoBiz AI, a Business Manager AI acting as a {business_role.replace('_', ' ').title()}.
 
 Your role is to manage product feedback, customer input, and operational concerns

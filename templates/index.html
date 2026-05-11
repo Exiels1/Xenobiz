@@ -25,6 +25,7 @@
       <div id="modeBadge" class="badge">Standard</div>
     </div>
     <div class="right">
+      <a class="ghost" href="/profile">My Business</a>
       <a class="ghost" href="/dashboard">Dashboard</a>
       <button id="btnToggleHistory" class="ghost" type="button" aria-pressed="false">Chats</button>
       <button id="btnRefreshGraphTop" class="ghost" type="button" onclick="document.getElementById('btnRefreshGraph')?.click()">Signals</button>
@@ -73,6 +74,14 @@
             <div class="support-sub">Describe one issue at a time. Include one specific detail.</div>
           </div>
         </div>
+      </div>
+
+      <div id="profileBanner" class="profile-banner" style="display: none;">
+        <div class="profile-banner-content">
+          <span>Set up your Business Profile to get personalized AI advice for your business.</span>
+          <a href="/profile" class="profile-banner-link">Set up now →</a>
+        </div>
+        <button id="dismissBanner" class="profile-banner-dismiss" type="button" aria-label="Dismiss banner">×</button>
       </div>
 
       <div class="app-main">
