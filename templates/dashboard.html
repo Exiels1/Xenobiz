@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XenoBiz Business Pulse</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0a0f1e;
+      --panel: #111827;
+      --panel-2: #0d1424;
+      --line: #1e2d3d;
+      --accent: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --text: #e2e8f0;
+      --muted: #64748b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Inter", "Segoe UI", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      background: #0a0f1e;
+      border-bottom: 1px solid rgba(226, 232, 240, 0.08);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
+    }
+
+    .title {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .title::before {
+      content: "";
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), #1d4ed8);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    }
+
+    .ghost {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      border: 1px solid rgba(226, 232, 240, 0.14);
+      background: transparent;
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      text-decoration: none;
+    }
+
+    .ghost:hover {
+      border-color: rgba(37, 99, 235, 0.5);
+      background: rgba(37, 99, 235, 0.12);
+      color: #ffffff;
+    }
+
+    .dashboard {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 32px 24px 42px;
+    }
+
+    .page-title {
+      margin-bottom: 24px;
+    }
+
+    h1, h2, h3, p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(30px, 4vw, 44px);
+      line-height: 1.1;
+      letter-spacing: 0;
+      color: #ffffff;
+    }
+
+    .subtitle {
+      margin-top: 10px;
+      color: #94a3b8;
+      font-size: 15px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 20px 42px rgba(0, 0, 0, 0.2);
+    }
+
+    .metric-card {
+      padding: 18px;
+      min-height: 132px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .metric-label {
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      margin-top: 18px;
+      font-size: 36px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .health-good { color: var(--success); }
+    .health-warn { color: var(--warning); }
+    .health-bad { color: var(--error); }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .chart-card,
+    .table-card,
+    .recommendation-card {
+      padding: 18px;
+    }
+
+    .card-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    h2 {
+      font-size: 16px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 310px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+    }
+
+    th,
+    td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th {
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    td {
+      color: var(--text);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: rgba(37, 99, 235, 0.13);
+      color: #93c5fd;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .recommendation-card {
+      border-left: 4px solid var(--accent);
+      background: linear-gradient(90deg, rgba(37, 99, 235, 0.12), rgba(17, 24, 39, 1) 32%);
+    }
+
+    .recommendations {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .recommendation {
+      padding: 12px;
+      border-radius: 8px;
+      background: rgba(13, 20, 36, 0.8);
+      border: 1px solid var(--line);
+    }
+
+    .empty {
+      color: var(--muted);
+    }
+
+    @media (max-width: 980px) {
+      .metrics,
+      .grid-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .topbar {
+        padding: 0 14px;
+      }
+
+      .dashboard {
+        padding: 24px 12px 32px;
+      }
+
+      .metrics,
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-wrap {
+        height: 260px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="title">XenoBiz</div>
+    <a class="ghost" href="/">Back to Console</a>
+  </header>
+
+  <main class="dashboard">
+    <section class="page-title">
+      <h1>Business Pulse</h1>
+      <p class="subtitle">Your AI Business Health Overview</p>
+    </section>
+
+    <section class="metrics" aria-label="Business metrics">
+      <article class="card metric-card">
+        <div class="metric-label">Business Health Score</div>
+        <div id="healthScore" class="metric-value">--</div>
+      </article>
+      <article class="card metric-card">
+        <div class="metric-label">Total Issues Tracked</div>
+        <div id="totalIssues" class="metric-value">--</div>
+      </article>
+      <article class="card metric-card">
+        <div class="metric-label">Total Conversations</div>
+        <div id="totalConversations" class="metric-value">--</div>
+      </article>
+      <article class="card metric-card">
+        <div class="metric-label">Active Handoffs</div>
+        <div id="handoffCount" class="metric-value">--</div>
+      </article>
+    </section>
+
+    <section class="grid-2">
+      <article class="card chart-card">
+        <div class="card-heading">
+          <h2>Top Issues</h2>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="topIssuesChart"></canvas>
+        </div>
+      </article>
+      <article class="card chart-card">
+        <div class="card-heading">
+          <h2>Sentiment Breakdown</h2>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="sentimentChart"></canvas>
+        </div>
+      </article>
+    </section>
+
+    <section class="card table-card">
+      <div class="card-heading">
+        <h2>Recent Activity</h2>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Issue Tag</th>
+            <th>Time Reported</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="recentIssuesBody">
+          <tr>
+            <td colspan="3" class="empty">Loading activity...</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card recommendation-card" style="margin-top: 18px;">
+      <h2>Decision Engine</h2>
+      <div id="recommendations" class="recommendations">
+        <div class="recommendation empty">Loading recommendations...</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const chartText = "#e2e8f0";
+    const gridColor = "rgba(100, 116, 139, 0.18)";
+    let topIssuesChart;
+    let sentimentChart;
+
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+
+    function healthClass(score) {
+      if (score > 70) return "health-good";
+      if (score >= 40) return "health-warn";
+      return "health-bad";
+    }
+
+    function formatTime(value) {
+      if (!value) return "Unknown";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleString();
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function renderMetrics(data) {
+      const healthEl = document.getElementById("healthScore");
+      healthEl.textContent = data.health_score;
+      healthEl.classList.remove("health-good", "health-warn", "health-bad");
+      healthEl.classList.add(healthClass(data.health_score));
+      setText("totalIssues", data.total_issues);
+      setText("totalConversations", data.total_conversations);
+      setText("handoffCount", data.handoff_count);
+    }
+
+    function renderCharts(data) {
+      const topLabels = data.top_issues.map((item) => item.tag);
+      const topCounts = data.top_issues.map((item) => item.count);
+      const sentiment = data.sentiment_breakdown || {};
+
+      if (topIssuesChart) topIssuesChart.destroy();
+      topIssuesChart = new Chart(document.getElementById("topIssuesChart"), {
+        type: "bar",
+        data: {
+          labels: topLabels.length ? topLabels : ["No issues"],
+          datasets: [{
+            data: topCounts.length ? topCounts : [0],
+            backgroundColor: "#2563eb",
+            borderRadius: 6,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: chartText }, grid: { color: gridColor } },
+            y: { beginAtZero: true, ticks: { color: chartText, precision: 0 }, grid: { color: gridColor } },
+          },
+        },
+      });
+
+      if (sentimentChart) sentimentChart.destroy();
+      sentimentChart = new Chart(document.getElementById("sentimentChart"), {
+        type: "doughnut",
+        data: {
+          labels: ["Positive", "Negative", "Neutral"],
+          datasets: [{
+            data: [sentiment.positive || 0, sentiment.negative || 0, sentiment.neutral || 0],
+            backgroundColor: ["#10b981", "#ef4444", "#2563eb"],
+            borderColor: "#111827",
+            borderWidth: 3,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: { color: chartText, usePointStyle: true, boxWidth: 8 },
+            },
+          },
+        },
+      });
+    }
+
+    function renderRecentIssues(data) {
+      const body = document.getElementById("recentIssuesBody");
+      if (!data.recent_issues.length) {
+        body.innerHTML = `<tr><td colspan="3" class="empty">No issue activity yet.</td></tr>`;
+        return;
+      }
+      body.innerHTML = data.recent_issues.map((item) => `
+        <tr>
+          <td>${escapeHtml(item.tag)}</td>
+          <td>${escapeHtml(formatTime(item.reported_at))}</td>
+          <td><span class="status-pill">Reported</span></td>
+        </tr>
+      `).join("");
+    }
+
+    function renderRecommendations(data) {
+      const recommendations = [];
+      const topIssue = data.top_issues[0];
+      if (data.health_score < 50) {
+        recommendations.push("Critical attention needed. Multiple unresolved issues detected.");
+      }
+      if (topIssue && topIssue.count > 5) {
+        recommendations.push(`Your most reported issue is ${topIssue.tag}. Consider addressing this immediately.`);
+      }
+      if (data.handoff_count > 0) {
+        recommendations.push(`${data.handoff_count} conversations need human review.`);
+      }
+      if (!recommendations.length) {
+        recommendations.push("Business pulse is stable. Continue monitoring new issue patterns.");
+      }
+      document.getElementById("recommendations").innerHTML = recommendations
+        .map((item) => `<div class="recommendation">${escapeHtml(item)}</div>`)
+        .join("");
+    }
+
+    async function loadPulse() {
+      try {
+        const response = await fetch("/api/pulse");
+        if (!response.ok) throw new Error("Pulse request failed");
+        const data = await response.json();
+        renderMetrics(data);
+        renderCharts(data);
+        renderRecentIssues(data);
+        renderRecommendations(data);
+      } catch (error) {
+        document.getElementById("recommendations").innerHTML =
+          `<div class="recommendation empty">Unable to load Business Pulse data.</div>`;
+      }
+    }
+
+    loadPulse();
+  </script>
+</body>
+</html>

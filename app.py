@@ -1580,6 +1580,126 @@ def attachment_download(attachment_id):
 def index():
     return render_template("index.html")
 
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    return render_template("dashboard.html")
+
+def classify_pulse_sentiment(text):
+    text_l = (text or "").lower()
+    positive_words = {
+        "great", "awesome", "nice", "love", "cool", "thanks", "thank you",
+        "perfect", "good", "excellent", "resolved", "fixed", "happy",
+        "works", "helpful", "amazing", "better",
+    }
+    negative_words = {
+        "bad", "hate", "angry", "annoyed", "broken", "sad", "error",
+        "issue", "problem", "crash", "failed", "fails", "can't", "cannot",
+        "wont", "won't", "not working", "drain", "slow", "stuck", "bug",
+    }
+    positive_score = sum(1 for word in positive_words if word in text_l)
+    negative_score = sum(1 for word in negative_words if word in text_l)
+    if negative_score > positive_score:
+        return "negative"
+    if positive_score > negative_score:
+        return "positive"
+    return "neutral"
+
+def clamp_score(value, minimum=0, maximum=100):
+    return max(minimum, min(maximum, int(value)))
+
+@app.route("/api/pulse")
+@login_required
+def api_pulse():
+    user_id = get_current_user_id()
+    cutoff_iso = (datetime.now() - timedelta(hours=24)).isoformat()
+
+    with get_db_connection() as conn:
+        total_issues_row = conn.execute(
+            "SELECT COALESCE(SUM(count), 0) AS c FROM issues"
+        ).fetchone()
+        total_conversations_row = conn.execute(
+            "SELECT COUNT(*) AS c FROM conversation_threads WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()
+        top_issue_rows = conn.execute(
+            """
+            SELECT tag, count
+            FROM issues
+            ORDER BY count DESC, last_reported DESC
+            LIMIT 5
+            """
+        ).fetchall()
+        recent_message_rows = conn.execute(
+            """
+            SELECT content
+            FROM conversations
+            WHERE user_id = ? AND role = 'user'
+            ORDER BY id DESC
+            LIMIT 50
+            """,
+            (user_id,),
+        ).fetchall()
+        negative_24h_rows = conn.execute(
+            """
+            SELECT content
+            FROM conversations
+            WHERE user_id = ? AND role = 'user' AND timestamp >= ?
+            ORDER BY id DESC
+            """,
+            (user_id, cutoff_iso),
+        ).fetchall()
+        issue_rows = conn.execute(
+            "SELECT tag, count FROM issues"
+        ).fetchall()
+        recent_issue_rows = conn.execute(
+            """
+            SELECT tag, reported_at
+            FROM issue_events
+            ORDER BY reported_at DESC, id DESC
+            LIMIT 5
+            """
+        ).fetchall()
+        handoff_row = conn.execute(
+            "SELECT COUNT(*) AS c FROM handoff_locks WHERE locked = 1"
+        ).fetchone()
+
+    sentiment_breakdown = {"positive": 0, "negative": 0, "neutral": 0}
+    for row in recent_message_rows:
+        sentiment = classify_pulse_sentiment(row["content"])
+        sentiment_breakdown[sentiment] += 1
+
+    negative_24h = sum(
+        1 for row in negative_24h_rows
+        if classify_pulse_sentiment(row["content"]) == "negative"
+    )
+    critical_count = sum(
+        1 for row in issue_rows
+        if analyze_issue_state(row["tag"], int(row["count"]), escalation_level(int(row["count"]))) == "CRITICAL"
+    )
+
+    total_issues = int(total_issues_row["c"]) if total_issues_row else 0
+    if total_issues <= 0:
+        health_score = 100
+    else:
+        health_score = clamp_score(100 - (negative_24h * 5) - (critical_count * 10))
+
+    return jsonify({
+        "total_issues": total_issues,
+        "total_conversations": int(total_conversations_row["c"]) if total_conversations_row else 0,
+        "top_issues": [
+            {"tag": row["tag"], "count": int(row["count"])}
+            for row in top_issue_rows
+        ],
+        "sentiment_breakdown": sentiment_breakdown,
+        "health_score": health_score,
+        "recent_issues": [
+            {"tag": row["tag"], "reported_at": row["reported_at"]}
+            for row in recent_issue_rows
+        ],
+        "handoff_count": int(handoff_row["c"]) if handoff_row else 0,
+    })
+
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
