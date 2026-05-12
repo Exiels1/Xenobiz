@@ -75,6 +75,30 @@ if (prefTheme) prefTheme.value = prefs.theme || "quantum";
 applyHistoryCollapsedState(localStorage.getItem(HISTORY_COLLAPSED_KEY) === "1");
 renderAttachmentTray();
 
+// Check for business profile on first login
+async function checkOnboardingStatus() {
+  try {
+    const response = await fetch('/profile/business');
+    if (response.ok) {
+      const profile = await response.json();
+      const hasProfile = profile && Object.keys(profile).length > 0 && 
+                       (profile.business_name || profile.business_type);
+      
+      if (!hasProfile) {
+        window.location.href = '/profile';
+      }
+    }
+  } catch (error) {
+    console.log('Onboarding check failed:', error);
+  }
+}
+
+// Run onboarding check on page load, but only if this is not a revisit
+if (!sessionStorage.getItem('xeno_onboarding_checked')) {
+  sessionStorage.setItem('xeno_onboarding_checked', 'true');
+  checkOnboardingStatus();
+}
+
 function inferSentiment(text) {
   const t = (text || "").toLowerCase();
   const pos = ["great", "awesome", "nice", "love", "cool", "thanks", "perfect", "good", "yes"];

@@ -119,8 +119,8 @@
     }
 
     .profile-banner {
-      background: rgba(37, 99, 235, 0.12);
-      border: 1px solid rgba(37, 99, 235, 0.28);
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.28);
       border-radius: 8px;
       padding: 20px;
       margin-bottom: 32px;
@@ -230,21 +230,138 @@
       color: #ef4444;
     }
 
+    .stepper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+
+    .stepper-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--muted);
+      position: relative;
+    }
+
+    .stepper-step.completed {
+      color: var(--success);
+    }
+
+    .stepper-step.active {
+      color: var(--accent);
+    }
+
+    .stepper-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 12px;
+      background: transparent;
+    }
+
+    .stepper-step.completed .stepper-circle {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: var(--success);
+      color: var(--success);
+    }
+
+    .stepper-step.active .stepper-circle {
+      background: rgba(37, 99, 235, 0.12);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .stepper-line {
+      width: 40px;
+      height: 2px;
+      background: var(--muted);
+      margin: 0 -4px;
+    }
+
+    .stepper-step.completed ~ .stepper-line {
+      background: var(--success);
+    }
+
+    .message.error {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.28);
+      color: #ef4444;
+    }
+
     @media (max-width: 768px) {
       .form-grid {
         grid-template-columns: 1fr;
       }
 
       .navbar {
-        padding: 0 20px;
+        padding: 0 16px;
+        height: 60px;
       }
 
       .container {
-        padding: 20px 20px;
+        padding: 20px 16px;
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .page-title {
+        margin-bottom: 24px;
       }
 
       .page-title h1 {
-        font-size: 32px;
+        font-size: 28px;
+      }
+
+      .page-title p {
+        font-size: 14px;
+      }
+
+      .stepper {
+        gap: 4px;
+        margin-bottom: 24px;
+        font-size: 12px;
+      }
+
+      .stepper-circle {
+        width: 28px;
+        height: 28px;
+        font-size: 11px;
+      }
+
+      .stepper-line {
+        width: 24px;
+        margin: 0 -2px;
+      }
+
+      .profile-banner {
+        padding: 14px 16px;
+        margin-bottom: 24px;
+      }
+
+      .profile-banner p {
+        font-size: 13px;
+      }
+
+      .form-input,
+      .form-select,
+      .form-textarea {
+        font-size: 13px;
+      }
+
+      .save-btn {
+        padding: 14px;
+        font-size: 14px;
       }
     }
   </style>
@@ -261,6 +378,23 @@
     <div class="page-title">
       <h1>Business Profile</h1>
       <p>Help your AI manager understand your business</p>
+    </div>
+
+    <div class="stepper">
+      <div class="stepper-step completed">
+        <div class="stepper-circle">✓</div>
+        <span>Create Account</span>
+      </div>
+      <div class="stepper-line"></div>
+      <div class="stepper-step active">
+        <div class="stepper-circle">2</div>
+        <span>Set Up Business</span>
+      </div>
+      <div class="stepper-line"></div>
+      <div class="stepper-step">
+        <div class="stepper-circle">3</div>
+        <span>Start Managing</span>
+      </div>
     </div>
 
     <div id="profileBanner" class="profile-banner">
@@ -404,8 +538,8 @@
           messageEl.style.display = 'block';
           profileBanner.classList.remove('show');
           setTimeout(() => {
-            messageEl.style.display = 'none';
-          }, 5000);
+            window.location.href = '/';
+          }, 1500);
         } else {
           messageEl.textContent = result.error || 'Failed to save profile.';
           messageEl.className = 'message error';

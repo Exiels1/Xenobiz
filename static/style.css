@@ -993,6 +993,218 @@ button {
   }
 }
 
+@media (max-width: 768px) {
+  /* Topbar adjustments */
+  .topbar {
+    padding: 0 12px;
+    height: 56px;
+  }
+
+  .title {
+    font-size: 16px;
+  }
+
+  .title::before {
+    width: 28px;
+    height: 28px;
+  }
+
+  .badge,
+  #btnRefreshGraphTop {
+    display: none;
+  }
+
+  .topbar .right {
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .ghost {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  /* Layout adjustments */
+  .layout {
+    padding: 10px;
+    gap: 10px;
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: calc(100vh - 56px);
+  }
+
+  .panel {
+    display: none !important;
+  }
+
+  .app {
+    height: auto;
+    min-height: calc(100vh - 56px);
+  }
+
+  /* App main layout */
+  .app-main {
+    grid-template-columns: 1fr;
+    height: 100%;
+  }
+
+  /* History sidebar */
+  .history-sidebar {
+    display: none;
+    border-right: none;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.12);
+    max-height: 40vh;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--primary);
+    z-index: 20;
+  }
+
+  .history-sidebar.open {
+    display: flex;
+  }
+
+  body.history-expanded .history-sidebar {
+    display: flex;
+  }
+
+  /* Support header */
+  .support-header {
+    padding: 12px 14px;
+  }
+
+  .support-title {
+    font-size: 15px;
+  }
+
+  .support-sub {
+    font-size: 12px;
+  }
+
+  /* Chat area */
+  .chat-area {
+    padding: 14px 10px;
+    gap: 12px;
+  }
+
+  /* Chat messages */
+  .msg {
+    max-width: 90%;
+    padding: 11px 13px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+
+  .msg::before {
+    width: 28px;
+    height: 28px;
+    font-size: 10px;
+  }
+
+  .msg.user {
+    margin-right: 40px;
+  }
+
+  .msg.user::before {
+    right: -40px;
+    width: 28px;
+    height: 28px;
+  }
+
+  .msg.assistant {
+    margin-left: 40px;
+  }
+
+  .msg.assistant::before {
+    left: -40px;
+    width: 28px;
+    height: 28px;
+  }
+
+  /* Chat form */
+  .chat-form {
+    padding: 10px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .chat-form input {
+    padding: 12px 14px;
+    font-size: 13px;
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+
+  .chat-form .icon-btn,
+  .icon-btn {
+    min-width: 38px;
+    width: 38px;
+    height: 38px;
+    font-size: 12px;
+  }
+
+  /* Attachment tray */
+  .attachment-tray {
+    padding: 6px 10px 0;
+    gap: 6px;
+  }
+
+  .attachment-chip {
+    max-width: 200px;
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  /* Input note */
+  .input-note {
+    padding: 6px 10px 10px;
+    font-size: 10px;
+  }
+
+  /* Typing indicator */
+  .typing {
+    margin-left: 40px;
+    padding: 10px 12px;
+  }
+
+  .dots span {
+    width: 6px;
+    height: 6px;
+  }
+
+  /* Support header banner */
+  .profile-banner {
+    margin: 0 10px 10px;
+    padding: 12px 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .profile-banner-content {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .profile-banner-content span {
+    font-size: 12px;
+  }
+
+  .profile-banner-link {
+    font-size: 13px;
+  }
+
+  .profile-banner-dismiss {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+}
+
 @media (max-width: 760px) {
   .topbar {
     padding: 0 12px;

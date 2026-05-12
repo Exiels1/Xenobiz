@@ -184,6 +184,48 @@
     </div>
   </div>
 
+  <script>
+    // Check for business profile on page load
+    async function checkBusinessProfile() {
+      try {
+        const response = await fetch('/profile/business');
+        if (response.ok) {
+          const profile = await response.json();
+          const hasProfile = profile && Object.keys(profile).length > 0 && 
+                           (profile.business_name || profile.business_type);
+          
+          if (!hasProfile) {
+            const banner = document.getElementById('profileBanner');
+            if (banner) {
+              banner.style.display = 'flex';
+            }
+          }
+        }
+      } catch (error) {
+        console.log('Profile check failed:', error);
+      }
+    }
+
+    // Dismiss banner handler
+    const dismissBtn = document.getElementById('dismissBanner');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', () => {
+        const banner = document.getElementById('profileBanner');
+        if (banner) {
+          banner.style.display = 'none';
+          sessionStorage.setItem('profileBannerDismissed', 'true');
+        }
+      });
+    }
+
+    // Check profile on load
+    window.addEventListener('load', () => {
+      if (!sessionStorage.getItem('profileBannerDismissed')) {
+        checkBusinessProfile();
+      }
+    });
+  </script>
+
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

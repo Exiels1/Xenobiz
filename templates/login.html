@@ -586,6 +586,7 @@
         const out = await postJson("/auth/signup", { email, password });
         renderCodes(out.recovery_codes || []);
         showMsg("Account created. Save your recovery codes before continuing.", true);
+        setTimeout(() => { window.location.href = "/profile"; }, 500);
       } catch (err) {
         renderCodes([]);
         showMsg(err.message, false);
