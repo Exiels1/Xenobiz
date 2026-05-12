@@ -38,7 +38,11 @@ app = Flask(
     template_folder=resource_path("templates"),
     static_folder=resource_path("static")
 )
-app.secret_key = os.environ.get("SECRET_KEY", "quantumshade_secret")
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    print("CRITICAL ERROR: SECRET_KEY not set.")
+    sys.exit(1)
+app.secret_key = SECRET_KEY
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB per request
 Session(app)
