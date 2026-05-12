@@ -4,7 +4,7 @@ services:
     env: python
     plan: free
     pythonVersion: "3.11.9"
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip && pip install --only-binary=:all: pydantic-core && pip install -r requirements.txt
     startCommand: gunicorn app:app
     autoDeploy: true
     envVars:
