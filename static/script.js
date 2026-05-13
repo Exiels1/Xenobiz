@@ -627,7 +627,8 @@ async function checkProfileBanner() {
     const response = await fetch('/profile/business');
     if (response.ok) {
       const profile = await response.json();
-        businessProfile = profile;
+      businessProfile = profile;
+    }
   } catch (error) {
     console.error('Failed to check profile:', error);
   }
