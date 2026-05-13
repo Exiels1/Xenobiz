@@ -640,6 +640,70 @@ button {
   border: 1px solid #1e2d3d;
 }
 
+.msg.user {
+  position: relative;
+}
+
+.msg.user:hover .edit-message-btn {
+  opacity: 1;
+}
+
+.edit-message-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: rgba(226, 232, 240, 0.72);
+  opacity: 0;
+  transition: opacity 0.18s ease, color 0.18s ease;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+}
+
+.edit-message-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.message-edit-form {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.message-edit-textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  background: #0d1117;
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+  outline: none;
+}
+
+.message-edit-textarea:focus {
+  border-color: rgba(37, 99, 235, 0.6);
+}
+
+.message-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.message-edit-actions .ghost,
+.message-edit-actions .outline {
+  min-width: 120px;
+}
+
 .msg.assistant {
   align-self: flex-start;
   margin-left: 46px;
@@ -794,8 +858,23 @@ button {
   transform: translateY(1px);
 }
 
+.pdf-download-btn {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pdf-download-btn:hover {
+  background: #1d4ed8;
+}
+
 .send-btn {
-  min-width: 46px;
   background: var(--accent) !important;
   color: #ffffff !important;
   border-color: var(--accent) !important;

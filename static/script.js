@@ -4,6 +4,7 @@ const ACTIVE_CONVO_KEY = "xeno_active_conversation_id";
 const HISTORY_COLLAPSED_KEY = "xeno_history_collapsed";
 let activeConversationId = null;
 let pendingAttachmentIds = [];
+let businessProfile = null;
 
 const prefs = loadPrefs();
 
@@ -123,6 +124,52 @@ function extractUrlsFromText(text, maxUrls = 3) {
   return unique;
 }
 
+function detectPdfType(text) {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  if (lower.includes("job description")) return "job_description";
+  if (lower.includes("invoice")) return "invoice";
+  if (lower.includes("recipe")) return "recipe";
+  if (lower.includes("task list")) return "summary";
+  if (lower.includes("summary")) return "summary";
+  if (lower.includes("report")) return "report";
+  return null;
+}
+
+async function downloadPdfFromServer(body, defaultName) {
+  try {
+    const response = await fetch("/generate/pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || "PDF generation failed.");
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = defaultName || "xenobiz-document.pdf";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  } catch (error) {
+    console.error(error);
+    alert(error.message || "Unable to generate PDF.");
+  }
+}
+
+async function generatePdfFromText({ type, title, content, business_name }) {
+  if (!type || !content) return;
+  const filename = `${(title || 'XenoBiz').replace(/\s+/g, "-").toLowerCase()}.pdf`;
+  await downloadPdfFromServer({ type, title, content, business_name }, filename);
+}
+
 let typingEl = null;
 function showTyping() {
   if (typingEl || !chatArea) return;
@@ -156,8 +203,157 @@ function appendMessage(role, text, mood = null, ts = null) {
   }
 
   el.appendChild(content);
+
+  if (role === "user") {
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "edit-message-btn";
+    editBtn.setAttribute("aria-label", "Edit message");
+    editBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+    editBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      enableMessageEdit(el, text);
+    });
+    el.appendChild(editBtn);
+  }
+
+  if (role === "assistant") {
+    const pdfType = detectPdfType(text);
+    if (pdfType) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "pdf-download-btn";
+      button.textContent = "📄 Download as PDF";
+      button.addEventListener("click", () => {
+        const cleanTitle = pdfType === "job_description" ? "Job Description" :
+          pdfType === "invoice" ? "Invoice" :
+          pdfType === "recipe" ? "Recipe" :
+          pdfType === "summary" ? "Summary" :
+          "Report";
+        generatePdfFromText({
+          type: pdfType,
+          title: `${cleanTitle} from XenoBiz`,
+          content: text,
+          business_name: businessProfile?.business_name || "XenoBiz",
+        });
+      });
+      el.appendChild(button);
+    }
+  }
+
   chatArea.appendChild(el);
   chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function enableMessageEdit(msgEl, originalText) {
+  if (!msgEl || msgEl.dataset.editing || !msgEl.classList.contains("user")) return;
+  const content = msgEl.querySelector(".content");
+  const meta = msgEl.querySelector(".meta");
+  const editBtn = msgEl.querySelector(".edit-message-btn");
+  if (!content) return;
+
+  content.style.display = "none";
+  if (meta) meta.style.display = "none";
+  if (editBtn) editBtn.style.display = "none";
+  msgEl.dataset.editing = "1";
+
+  const form = document.createElement("div");
+  form.className = "message-edit-form";
+
+  const textarea = document.createElement("textarea");
+  textarea.className = "message-edit-textarea";
+  textarea.value = originalText;
+  textarea.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      restoreMessageEdit(msgEl);
+    }
+  });
+
+  const actions = document.createElement("div");
+  actions.className = "message-edit-actions";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.className = "ghost cancel-edit-btn";
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.addEventListener("click", () => restoreMessageEdit(msgEl));
+
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.className = "outline save-edit-btn";
+  saveBtn.textContent = "Save & Resend";
+  saveBtn.addEventListener("click", async () => {
+    const editedText = textarea.value.trim();
+    if (!editedText) return;
+    restoreMessageEdit(msgEl, editedText);
+    removeMessagesAfter(msgEl);
+    showTyping();
+    try {
+      const autoUrls = extractUrlsFromText(editedText, 3);
+      const payload = {
+        message: `${buildContextPrefix()}\n${editedText}`,
+        conversation_id: activeConversationId,
+        attachment_ids: [],
+        url_inputs: autoUrls,
+      };
+      const resp = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (resp.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
+      const j = await resp.json();
+      hideTyping();
+      appendMessage("assistant", j.reply || "(No reply)", inferSentiment(j.reply || ""));
+      activeConversationId = j.conversation_id || activeConversationId;
+      saveActiveConversation();
+      await loadConversations();
+      updateGraphFromText(editedText + " " + (j.reply || ""));
+    } catch {
+      hideTyping();
+      appendMessage("assistant", "Error contacting server.");
+    }
+  });
+
+  actions.appendChild(cancelBtn);
+  actions.appendChild(saveBtn);
+  form.appendChild(textarea);
+  form.appendChild(actions);
+  msgEl.appendChild(form);
+
+  textarea.focus();
+  textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+}
+
+function restoreMessageEdit(msgEl, updatedText) {
+  const form = msgEl.querySelector(".message-edit-form");
+  const content = msgEl.querySelector(".content");
+  const meta = msgEl.querySelector(".meta");
+  const editBtn = msgEl.querySelector(".edit-message-btn");
+  if (!content) return;
+
+  if (typeof updatedText === "string") {
+    content.textContent = updatedText;
+  }
+  content.style.display = "";
+  if (meta) meta.style.display = "";
+  if (editBtn) editBtn.style.display = "";
+  if (form) form.remove();
+  delete msgEl.dataset.editing;
+}
+
+function removeMessagesAfter(msgEl) {
+  if (!chatArea) return;
+  let next = msgEl.nextElementSibling;
+  while (next) {
+    const current = next;
+    next = next.nextElementSibling;
+    current.remove();
+  }
 }
 
 function renderAttachmentTray() {
@@ -431,10 +627,7 @@ async function checkProfileBanner() {
     const response = await fetch('/profile/business');
     if (response.ok) {
       const profile = await response.json();
-      if (Object.keys(profile).length === 0) {
-        banner.style.display = 'flex';
-      }
-    }
+        businessProfile = profile;
   } catch (error) {
     console.error('Failed to check profile:', error);
   }
