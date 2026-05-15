@@ -290,6 +290,9 @@
     <section class="page-title">
       <h1>Business Pulse</h1>
       <p class="subtitle">Your AI Business Health Overview</p>
+      <div style="margin-top: 18px;">
+        <button id="btnGenerateReport" class="ghost">Generate Report</button>
+      </div>
     </section>
 
     <section class="metrics" aria-label="Business metrics">
@@ -501,6 +504,99 @@
         document.getElementById("recommendations").innerHTML =
           `<div class="recommendation empty">Unable to load Business Pulse data.</div>`;
       }
+    }
+
+    async function buildBusinessPulsePdf() {
+      try {
+        const [pulseRes, profileRes] = await Promise.all([
+          fetch("/api/pulse"),
+          fetch("/profile/business"),
+        ]);
+        if (!pulseRes.ok) throw new Error("Unable to load pulse data.");
+        if (!profileRes.ok) throw new Error("Unable to load business profile.");
+
+        const pulse = await pulseRes.json();
+        const profile = await profileRes.json();
+        const businessName = profile.business_name || "XenoBiz";
+        const title = "Business Pulse Report";
+        const lines = [
+          `Business Name: ${businessName}`,
+          `Date generated: ${new Date().toLocaleDateString()}`,
+          "",
+          `Business Health Score: ${pulse.health_score}`,
+          `Total Issues Tracked: ${pulse.total_issues}`,
+          `Total Conversations: ${pulse.total_conversations}`,
+          `Active Handoffs: ${pulse.handoff_count}`,
+          "",
+          "Top Issues:",
+        ];
+
+        if (pulse.top_issues.length) {
+          pulse.top_issues.forEach((item, index) => {
+            lines.push(`${index + 1}. ${item.tag} — ${item.count}`);
+          });
+        } else {
+          lines.push("No top issues available.");
+        }
+
+        lines.push("", "Sentiment Breakdown:");
+        lines.push(`Positive: ${pulse.sentiment_breakdown.positive || 0}`);
+        lines.push(`Negative: ${pulse.sentiment_breakdown.negative || 0}`);
+        lines.push(`Neutral: ${pulse.sentiment_breakdown.neutral || 0}`);
+        lines.push("", "Recent Activity:");
+        if (pulse.recent_issues.length) {
+          pulse.recent_issues.forEach((item) => {
+            lines.push(`- ${item.tag} reported at ${new Date(item.reported_at).toLocaleString()}`);
+          });
+        } else {
+          lines.push("- No recent activity recorded.");
+        }
+        lines.push("", "AI Recommendations:");
+        if (pulse.top_issues.length) {
+          lines.push(`- Focus on ${pulse.top_issues[0].tag} first to reduce risk.`);
+        }
+        if (pulse.handoff_count > 0) {
+          lines.push(`- Review ${pulse.handoff_count} active handoffs for Quality assurance.`);
+        }
+        if (!pulse.top_issues.length && pulse.handoff_count === 0) {
+          lines.push("- Your business pulse is stable. Continue monitoring and refining workflows.");
+        }
+
+        const content = lines.join("\n");
+        const response = await fetch("/generate/pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "report",
+            title,
+            content,
+            business_name: businessName,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(error.error || "Unable to generate PDF.");
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "business-pulse-report.pdf";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error(error);
+        alert(error.message || "Failed to create report PDF.");
+      }
+    }
+
+    const btnGenerateReport = document.getElementById("btnGenerateReport");
+    if (btnGenerateReport) {
+      btnGenerateReport.addEventListener("click", buildBusinessPulsePdf);
     }
 
     loadPulse();
